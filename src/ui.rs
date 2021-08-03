@@ -1,29 +1,74 @@
 use std::io;
+// use termion::input::TermRead;
+use crossbeam::channel::{bounded,Receiver,TrySendError};
+use std::thread;
 use tui::Terminal;
 use tui::backend::TermionBackend;
-use tui::widgets::{Widget, Block, Borders,Paragraph};
-use tui::style::{Color, Modifier, Style};
+use tui::widgets::{Block, Borders,Paragraph};
+use tui::style::{Color, Style};
 use tui::text::{Span, Spans};
 use termion::raw::IntoRawMode;
+// use std::future::Future;
 
+use termion::event::Key;
+use termion::input::TermRead;
 
 use crate::game::{Item,RenderMap, SnakeControl, FoodGroup};
 
-pub struct UI {
-    terminal: tui::Terminal<tui::backend::TermionBackend<termion::raw::RawTerminal<std::io::Stdout>>>
+#[derive(PartialEq)]
+pub enum UIControl {
+    SnakeControl(SnakeControl),
+    ExitProgram
 }
 
-pub struct Inputs {
+impl UIControl {
+    pub fn get_snake_control(self) -> SnakeControl {
+        match self {
+            UIControl::SnakeControl(c) => c,
+            _ => SnakeControl::None,
+        }
+    }
+}
 
+pub struct UI {
+    terminal: tui::Terminal<tui::backend::TermionBackend<termion::raw::RawTerminal<std::io::Stdout>>>,
+    // input_thread_handle: std::thread::JoinHandle<()>,
+    receiver_channel: Receiver<Input>,
+}
+
+pub struct Input {
+    k: Key,
 }
 
 impl UI {
     pub fn new() -> Result<Self, io::Error> {
         let stdout = io::stdout().into_raw_mode()?;
         let backend = TermionBackend::new(stdout);
-        let mut terminal = Terminal::new(backend)?;
+        let terminal = Terminal::new(backend)?;
+
+        let (sender,receiver_channel) = bounded::<Input>(1);
+
+        let _input_thread_handle = {
+            let tx = sender.clone();
+            thread::spawn(move || {
+                let stdin = io::stdin();
+                for evt in stdin.keys() {
+                    if let Ok(key) = evt {
+                        // if we have a key, then try to send it
+                        if let Err(err) = tx.try_send(Input{k:key}) {
+                            if let TrySendError::Disconnected(_) = err {
+                                return;
+                            }
+                        }
+                    }
+                }
+            })
+        };
+
         Ok(Self {
             terminal,
+            // input_thread_handle,
+            receiver_channel,
         })
     }
 
@@ -31,16 +76,20 @@ impl UI {
         self.terminal.clear().unwrap();
     }
 
-    fn init(&mut self) {
-        unimplemented!();
-    }
-
-    pub fn get_snake_control(&self) -> SnakeControl {
-        SnakeControl::None
-    }
-
-    async fn process_input() {
-
+    pub fn get_control(&self) -> UIControl {
+        if let Ok(input) = self.receiver_channel.try_recv() {
+            match input.k {
+                Key::Left  => UIControl::SnakeControl(SnakeControl::Left),
+                Key::Right => UIControl::SnakeControl(SnakeControl::Right),
+                Key::Up    => UIControl::SnakeControl(SnakeControl::Up),
+                Key::Down  => UIControl::SnakeControl(SnakeControl::Down),
+                Key::Esc | Key::Ctrl('c') | Key::Char('q') 
+                           => UIControl::ExitProgram,
+                _          => UIControl::SnakeControl(SnakeControl::None),
+            }
+        } else {
+            UIControl::SnakeControl(SnakeControl::None)
+        }
     }
 
     pub fn render(&mut self,map: RenderMap) {
