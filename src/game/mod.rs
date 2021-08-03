@@ -3,7 +3,7 @@ mod util;
 
 use sprites::{Snake};
 pub use sprites::{SnakeState,Reason};
-use util::{Size, Direction};
+use util::{Size, Direction, Position, Food};
 pub use util::FoodGroup;
 
 pub struct GameState {
@@ -32,20 +32,23 @@ impl From<SnakeControl> for Direction {
 
 
 impl GameState {
-    pub fn new(map_size: Size) -> Self {
-        let map_x = map_size.x as f32;
-        let map_y = map_size.y as f32;
-        let snake_x = (map_x*0.5).floor() as usize;
-        let snake_y = (map_y*0.5).floor() as usize;
+    pub fn new<P: Into<Position>,S: Into<Size>+Clone>(map_size: S, snake_position: P) -> Self {
+        // let map_x = map_size.x as f32;
+        // let map_y = map_size.y as f32;
+        // let snake_x = (map_x*0.5).floor() as usize;
+        // let snake_y = (map_y*0.5).floor() as usize;
+        let pos = snake_position.into();
+        let snake_x = pos.x;
+        let snake_y = pos.y;
         Self {
-            snake: Snake::new([snake_x,snake_y], map_size),
+            snake: Snake::new([snake_x,snake_y], map_size.clone().into()),
             foods: Vec::new(),
-            map_size,
+            map_size: map_size.into(),
             score: 0,
         }
     }
 
-    pub fn update(&mut self,control: SnakeControl) -> SnakeState {
+    pub fn update(&mut self,control: SnakeControl, gen_new_food: bool) -> SnakeState {
         // apply control input to snake
         if control != SnakeControl::None {
             self.snake.set_dir(control.into());
@@ -60,12 +63,39 @@ impl GameState {
                 let food = self.foods.remove(index);
                 food_to_eat = Some(food.group);
                 self.score += 1;
+
                 break;
             }
         }
         // println!("food to eat: {:?}",food_to_eat);
         //// let the snake slither and give it any food it finds
-        return self.snake.slither(food_to_eat)
+        let snake_state = self.snake.slither(food_to_eat);
+        if gen_new_food {
+            self.gen_food();
+        }
+
+        return snake_state;
+    }
+
+    pub fn gen_food(&mut self) {
+        // todo make this random
+        let food_pos : Position = [4,3].into();
+
+        if !self.snake.is_in_snake(food_pos) {
+            self.add_food(Food::new(food_pos, FoodGroup::Grow));
+        }
+    }
+
+    fn add_food(&mut self, new_food: Food) {
+        let mut present = false;
+        self.foods.iter().for_each(|f| {
+            if *f==new_food {
+                present = true;
+            }
+        });
+        if !present {
+            self.foods.push(new_food)
+        }
     }
 
     pub fn get_render_map(&self) -> RenderMap {
@@ -97,4 +127,51 @@ pub enum Item {
     SnakeHead,
     Food(FoodGroup),
     Nothing,
+}
+
+
+#[cfg(test)] 
+mod test {
+    use super::*;
+    #[test]
+    fn init_gs() {
+        let gs = GameState::new([10,10],[4,4]);
+        assert_eq!(gs.foods,     Vec::new());
+        assert_eq!(gs.map_size,  Size{x:10,y:10});
+        assert_eq!(gs.score,     0);
+    }
+
+    #[test]
+    fn run_update_10() {
+        let mut gs = GameState::new([10,10],[4,4]);
+        for _i in 0..10 {
+            gs.update(SnakeControl::None, false);
+        }
+        assert_eq!(gs.snake.get_next_head_pos(), [4,5].into());
+    }
+
+    #[test]
+    fn run_update_10_with_init_food() {
+        let mut gs = GameState::new([10,10],[4,4]);
+        let food_count_ref = [1,1,1,1,1,1,1,1,0,0];
+        gs.gen_food();
+        for i in 0..10 {
+            gs.update(SnakeControl::None, false);
+            assert_eq!(food_count_ref[i], gs.foods.len());
+        }
+        assert_eq!(gs.snake.get_next_head_pos(), [4,5].into());
+    }
+
+    #[test]
+    fn run_update_10_with_const_food() {
+        let mut gs = GameState::new([10,10],[4,4]);
+        // let food_count_ref = [1,1,1,1,1,1,1,1,0,0];
+        gs.gen_food();
+        for _i in 0..10 {
+            gs.update(SnakeControl::None, true);
+            // assert_eq!(food_count_ref[i], gs.foods.len());
+        }
+        // assert_eq!(gs.snake.get_next_head_pos(), [4,5].into());
+    }
+
 }

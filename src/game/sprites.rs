@@ -83,8 +83,13 @@ impl Snake {
     pub fn next_head_pos_in_body(&mut self) -> bool {
         // println!("--> next_head_pos_in_body");
         let next_head_pos = self.get_next_head_pos();
+        return self.is_in_snake(next_head_pos);
+    }
+
+    pub fn is_in_snake<T: Into<Position>>(&mut self, pos: T) -> bool {
+        let local_pos : Position = pos.into();
         for seg in self.segments.iter() {
-            if next_head_pos==seg.pos {
+            if local_pos==seg.pos {
                 return true;
             }
         }
@@ -417,5 +422,22 @@ mod test {
         s.travelled_dir = Direction::Left;
         
         assert_eq!(s.slither(Some(FoodGroup::Poison)),SnakeState::Dead(Reason::Poison));
+    }
+
+    #[test]
+    fn test_in_snake() {
+        let mut s = Snake::new([3,3], Size{x:5,y:5});
+        s.add_front_segment([2,3]);
+        s.add_front_segment([2,2]);
+        s.add_front_segment([2,1]);
+
+        assert_eq!(s.is_in_snake([4,5]),false);
+        assert_eq!(s.is_in_snake([0,0]),false);
+        assert_eq!(s.is_in_snake([2,0]),false);
+
+        assert_eq!(s.is_in_snake([3,3]),true);
+        assert_eq!(s.is_in_snake([2,3]),true);
+        assert_eq!(s.is_in_snake([2,2]),true);
+        assert_eq!(s.is_in_snake([2,1]),true);
     }
 }

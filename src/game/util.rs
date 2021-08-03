@@ -101,6 +101,7 @@ pub enum FoodGroup {
     Poison,
 }
 
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Food {
     pub group: FoodGroup,
     pub pos:  Position,
