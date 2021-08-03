@@ -101,7 +101,9 @@ impl Snake {
     }
 
     fn drop_last_segment(&mut self) {
-        self.segments.pop_back();
+        if self.segments.make_contiguous().len() > 1 {
+            self.segments.pop_back();
+        }
     }
 
     // use the current travel direction to update the snake position based on the direction.

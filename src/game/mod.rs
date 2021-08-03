@@ -115,9 +115,7 @@ impl GameState {
     }
 
     pub fn gen_food(&mut self) {
-        if self.rng.gen_range(0..5) ==1 {
-            
-            
+        if self.rng.gen_range(0..4) ==0 {
             
             let mut food_pos: Position;
             loop {
@@ -128,10 +126,10 @@ impl GameState {
             }
 
             // let food = Food::new(food_pos, FoodGroup::Grow);
-            let food = match self.rng.gen_range(0..8) {
+            let food = match self.rng.gen_range(0..10) {
                 0..=5 => Food::new(food_pos, FoodGroup::Grow),
-                6..=7 => Food::new_with_lifetime(food_pos, FoodGroup::Poison, 5),
-            //     8..=9 => Food::new(food_pos, FoodGroup::Shrink),
+                6..=7 => Food::new_with_lifetime(food_pos, FoodGroup::Poison, 10),
+                8..=9 => Food::new_with_lifetime(food_pos, FoodGroup::Shrink, 10),
                 _     => unreachable!(),
             };
             // println!("adding food: {:?}",food);
