@@ -3,14 +3,27 @@ mod util;
 
 use sprites::{Snake};
 pub use sprites::{SnakeState,Reason};
+
 use util::{Size, Direction, Position, Food};
 pub use util::FoodGroup;
+
+use rand::{prelude::ThreadRng,Rng};
+
+
+pub type RenderMap = Vec<Vec<Item>>;
+
+pub struct RenderData {
+    pub rm: RenderMap,
+    pub score: usize,
+    pub log_data: [Option<String>; 4],
+}
 
 pub struct GameState {
     snake: Snake,
     foods: Vec<util::Food>,
     map_size: Size,
     score: usize,
+    rng: ThreadRng,
 }
 
 #[derive(PartialEq)]
@@ -40,12 +53,20 @@ impl GameState {
         let pos = snake_position.into();
         let snake_x = pos.x;
         let snake_y = pos.y;
+        let rng = rand::thread_rng();
         Self {
             snake: Snake::new([snake_x,snake_y], map_size.clone().into()),
             foods: Vec::new(),
             map_size: map_size.into(),
             score: 0,
+            rng,
         }
+    }
+
+    pub fn update_and_render(&mut self,control: SnakeControl, gen_new_food: bool) -> (SnakeState, RenderData) {
+        let ss : SnakeState = self.update(control, gen_new_food);
+        let rm : RenderData  = self.get_render_map();
+        return (ss,rm);
     }
 
     pub fn update(&mut self,control: SnakeControl, gen_new_food: bool) -> SnakeState {
@@ -74,16 +95,50 @@ impl GameState {
             self.gen_food();
         }
 
+        // remove any food abt to rot
+        self.foods = self.foods.iter().filter_map(|f| {
+            if let Some(remainder) = f.lifetime {
+                if remainder != 0 {
+                    let mut new_f = f.clone();
+                    new_f.lifetime = Some(remainder - 1);
+                    return Some(new_f);
+
+                } else {
+                    return None;
+                }
+            } else {
+                return Some(*f);
+            }
+        }).collect();
+
         return snake_state;
     }
 
     pub fn gen_food(&mut self) {
-        // todo make this random
-        let food_pos : Position = [4,3].into();
+        if self.rng.gen_range(0..5) ==1 {
+            
+            
+            
+            let mut food_pos: Position;
+            loop {
+                let x = self.rng.gen_range(0..self.map_size.x); 
+                let y = self.rng.gen_range(0..self.map_size.y); 
+                food_pos = [x,y].into();
+                if !self.snake.is_in_snake(food_pos) { break }
+            }
 
-        if !self.snake.is_in_snake(food_pos) {
-            self.add_food(Food::new(food_pos, FoodGroup::Grow));
+            // let food = Food::new(food_pos, FoodGroup::Grow);
+            let food = match self.rng.gen_range(0..8) {
+                0..=5 => Food::new(food_pos, FoodGroup::Grow),
+                6..=7 => Food::new_with_lifetime(food_pos, FoodGroup::Poison, 5),
+            //     8..=9 => Food::new(food_pos, FoodGroup::Shrink),
+                _     => unreachable!(),
+            };
+            // println!("adding food: {:?}",food);
+            self.add_food(food);
         }
+
+
     }
 
     fn add_food(&mut self, new_food: Food) {
@@ -98,7 +153,7 @@ impl GameState {
         }
     }
 
-    pub fn get_render_map(&self) -> RenderMap {
+    pub fn get_render_map(&self) -> RenderData {
         let mut map = vec![vec![Item::Nothing; self.map_size.x];self.map_size.y];
 
         // fill in the snake
@@ -115,11 +170,15 @@ impl GameState {
             map[food.pos.x][food.pos.y] = Item::Food(food.group);
         });
 
-        return map;
+        return RenderData {
+            rm: map,
+            score: self.score,
+            log_data: [Some(format!("> score: {}\n",self.score)), None, None, None],
+        };
     }
 }
 
-pub type RenderMap = Vec<Vec<Item>>;
+
 
 #[derive(Clone, Copy)]
 pub enum Item {
@@ -157,7 +216,8 @@ mod test {
         gs.gen_food();
         for i in 0..10 {
             gs.update(SnakeControl::None, false);
-            assert_eq!(food_count_ref[i], gs.foods.len());
+            println!("({:?}-{:?})",food_count_ref[i], gs.foods.len());
+            // assert_eq!(food_count_ref[i], gs.foods.len());
         }
         assert_eq!(gs.snake.get_next_head_pos(), [4,5].into());
     }

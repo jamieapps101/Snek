@@ -21,17 +21,16 @@ pub async fn main() {
             ui.clear();
             break;
         }
-        let gs_update_response = gs.update(control.get_snake_control(), true);
-        if let SnakeState::Dead(reason) = gs_update_response {
+        // update the game state base on user input
+        // render out the game for the ui
+        let (ss,rd) = gs.update_and_render(control.get_snake_control(), true);
+        if let SnakeState::Dead(reason) = ss {
             ui.clear();
             println!("You died: {:?}",reason);
             break;
         }
-        
         // update ui
-        let map = gs.get_render_map();
-        ui.render(map);
-        
+        ui.render(rd);
         // wait a while
         sleep(Duration::from_millis(500)).await;
     }

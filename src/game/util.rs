@@ -105,10 +105,15 @@ pub enum FoodGroup {
 pub struct Food {
     pub group: FoodGroup,
     pub pos:  Position,
+    pub lifetime: Option<usize>,
 }
 
 impl Food {
     pub fn new<T: Into<Position>>(pos: T, group: FoodGroup) -> Self {
-        Self {pos:pos.into(),group}
+        Self {pos:pos.into(),group, lifetime: None}
+    }
+
+    pub fn new_with_lifetime<T: Into<Position>>(pos: T, group: FoodGroup, lifetime: usize) -> Self {
+        Self {pos:pos.into(),group, lifetime: Some(lifetime)}
     }
 }
