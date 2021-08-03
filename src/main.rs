@@ -1,17 +1,36 @@
 use std::process::{exit};
 
+use clap::{Arg, App};
 use tokio::time::{sleep, Duration};
 
 mod game;
-mod ui;
 use game::{GameState,SnakeState};
 
+mod ui;
 use ui::{UI,UIControl};
 
+mod util;
+use util::*;
 
 #[tokio::main]
 pub async fn main() {
-    let mut gs = GameState::new([10,10],[4,4]);
+    // Parse the Args
+    let matches = App::new("Snek")
+                          .version("1.0")
+                          .about("CLI Snake Game")
+                          .arg(Arg::with_name("dims")
+                               .short("d")
+                               .long("dims")
+                               .value_name("H,W")
+                               .help("Sets the game width and height")
+                               .takes_value(true))
+                          .get_matches();
+
+    let dim_string = matches.value_of("dims").unwrap_or("10,10");
+    let dims : [usize; 2] = args_to_dims(dim_string).unwrap();
+
+    // Start the Game
+    let mut gs = GameState::new(dims,[0,0]);
     gs.gen_food();
     let mut ui = UI::new().unwrap();
     ui.clear();

@@ -108,8 +108,6 @@ impl Snake {
 
     // use the current travel direction to update the snake position based on the direction.
     pub fn slither(&mut self, food_to_eat: Option<FoodGroup>) -> SnakeState {
-        // println!("--> slither");
-        // println!("\t 0.self.segments: {:?}",self.segments);
         if self.next_head_pos_in_body() {
             return SnakeState::Dead(Reason::Collision);
         }
@@ -130,9 +128,7 @@ impl Snake {
                 FoodGroup::Shrink => {
                     self.drop_last_segment();
                     self.drop_last_segment();
-                    // println!("\t 2.self.segments: {:?}",self.segments);
                     let next_pos = self.get_next_head_pos();
-                    // println!("\t 3.self.segments: {:?}",self.segments);
                     let seg = Segment::new(next_pos);
                     self.add_front_segment(seg);
                 }
