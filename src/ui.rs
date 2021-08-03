@@ -94,10 +94,13 @@ impl UI {
 
     pub fn render(&mut self,map: RenderMap) {
         self.terminal.draw(|f| {
-            let text :Vec<Spans> = map.iter().map(|row| {
 
-                let row_spans : Vec<Span> = row.iter().map(|item| {
-                    match item {
+            let height = map[0].len();
+            let width = map.len();
+
+            let text :Vec<Spans> = (0..height).rev().map(|y| {
+                let row_spans : Vec<Span> = (0..width).map(|x| {
+                    match map[x][y] {
                         Item::Food(food_type) => {
                             match food_type {
                                 FoodGroup::Grow   => Span::styled(" o", Style::default().fg(Color::Blue)),
