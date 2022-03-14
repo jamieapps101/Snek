@@ -1,7 +1,9 @@
-use std::process::{exit};
+// use std::process::{exit};
 
 use clap::{Arg, App};
-use tokio::time::{sleep, Duration};
+// use tokio::time::{sleep, Duration};
+use std::thread::sleep;
+use std::time::Duration;
 
 mod game;
 use game::{GameState,SnakeState};
@@ -12,8 +14,7 @@ use ui::{UI,UIControl};
 mod util;
 use util::*;
 
-#[tokio::main]
-pub async fn main() {
+fn main() {
     // Parse the Args
     let matches = App::new("Snek")
                           .version("1.0")
@@ -51,8 +52,7 @@ pub async fn main() {
         // update ui
         ui.render(rd);
         // wait a while
-        sleep(Duration::from_millis(500)).await;
+        sleep(Duration::from_millis(500));
     }
-    
-    exit(0);
+
 }
