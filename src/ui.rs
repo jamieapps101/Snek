@@ -34,9 +34,7 @@ impl UIControl {
 
 pub struct UI {
     terminal: tui::Terminal<tui::backend::TermionBackend<termion::raw::RawTerminal<std::io::Stdout>>>,
-    // input_thread_handle: std::thread::JoinHandle<()>,
     receiver_channel: Receiver<Input>,
-    // log_data: [String; 4],
 }
 
 pub struct Input {
@@ -70,9 +68,7 @@ impl UI {
 
         Ok(Self {
             terminal,
-            // input_thread_handle,
             receiver_channel,
-            // log_data: [String::default(),String::default(),String::default(),String::default()],
         })
     }
 
@@ -96,28 +92,10 @@ impl UI {
         }
     }
 
-    // fn push_to_log(&mut self, data: Option<String>) {
-    //     if let Some(message) = data {
-    //         for i in 0..3 {
-    //             self.log_data[i]=self.log_data[i+1].clone();
-    //         }
-    //         self.log_data[3] = message;
-    //     }
-    // }
-
     pub fn render(&mut self,rd: RenderData) {
-        // rd.log_data.iter().for_each(|item|{
-            // self.push_to_log(item.clone());
-        // });
-
-        // let log_data = self.log_data.clone();
-
-
         self.terminal.draw(|f| {
-
             let height = rd.rm[0].len();
             let width  = rd.rm.len();
-
             let mut text : Vec<Spans> = (0..height).rev().map(|y| {
                 let row_spans : Vec<Span> = (0..width).map(|x| {
                     match rd.rm[x][y] {
@@ -138,11 +116,6 @@ impl UI {
 
             }).collect();
             text.push(Spans::from(format!("score: {}\n",rd.score)));
-            // text.push(Spans::from("Log:"));
-            // log_data.iter().rev().for_each(|item| {
-                // text.push( Spans::from(item.to_owned()) );
-            // });
-            
             let size = f.size();
             let block = Block::default()
                 .title("Snek")
